@@ -1,0 +1,15 @@
+{
+  "name": "GPXルート天候",
+  "short_name": "GPXルート天候",
+  "description": "Epic Ride Weatherのパチモンです。",
+  "icons": [
+      {
+          "src": "icons/icon_192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+      }
+  ],
+  "display": "standalone",
+  "start_url": "gpx_weather.html",
+  "id":"gpx_weather.html"
+}
