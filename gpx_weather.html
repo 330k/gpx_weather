@@ -353,7 +353,8 @@ function fitBounds(){
  * ルートを表示する
  */
 function showRoutes(){
-  const colors = ["#3f3d9a", "#9a3d71", "#9a8c3d", "#3d9a56", "#3d5a9a", "#9a3d90", "#9a6d3d", "#439a3d", "#3d799a", "#843d9a", "#9a4e3d", "#629a3d"];
+  //const colors = ["#3f3d9a", "#9a3d71", "#9a8c3d", "#3d9a56", "#3d5a9a", "#9a3d90", "#9a6d3d", "#439a3d", "#3d799a", "#843d9a", "#9a4e3d", "#629a3d"];
+  const colors = ["#ff0000"];
   
   googlemap.lines.map((e) => {e.setMap(null);});
   googlemap.lines.length = 0;
@@ -448,7 +449,7 @@ function WeatherData(){
     if(this._weather_data[latlng_code]){
       const times = this._weather_data[latlng_code].map(e => e.time);
       
-      let result = {};
+      let result = null;
       let min = Number.MAX_VALUE;
       
       for(const d of this._weather_data[latlng_code]){
@@ -568,22 +569,33 @@ function showWeatherData(){
       map_markers.push(new google.maps.Marker({
         map: googlemap.map,
         position: p,
-        icon: {
+        /*icon: {
           //path: "M -2,-9 2,-9 0,10 z",
           //path: "M 0.2,-10 0.2,7 2,3 0,10 -2,3 -0.2,7 -0.2,-10",
-          path: "M 0,-3 3,-10 0,10 -3,-10 z",
+          //path: "M 0,-3 3,-10 0,10 -3,-10 z",
+          path: "M 0,10 -3,6 0,10 3,6 0,10 0,-10",
+          anchor: new google.maps.Point(0, 10),
           strokeColor: "#800",
           strokeWeight: 0.5,
           fillColor: "#F00",
           fillOpacity: 1,
           rotation: data.winddirection_10m,
           scale: Math.sqrt(data.windspeed_10m) * document.getElementById("map_canvas").clientWidth / 1080 * 2 // 面積で風速を表示
-          //scale: nearestpointdata.wind_speed * document.documentElement.clientWidth * 0.001 // 長さで風速を表示
+          //scale: data.windspeed_10m * document.documentElement.clientWidth * 0.001 // 長さで風速を表示
+        },*/
+        icon: {
+          path: "M 0,10 -3,6 0,10 3,6 0,10 0,-10",
+          anchor: new google.maps.Point(0, 10),
+          strokeColor: "#000",
+          strokeWeight: 3,
+          rotation: data.winddirection_10m,
+          scale: data.windspeed_10m * 0.5 // 長さで風速を表示
         },
         //title: data.windspeed_10m.toFixed(1) + "m/s"
       }));
       
-      const x = (new Date(data.time)).toISOString();
+      try{
+        const x = (new Date(data.time)).toISOString();
       data_temperature.push({
         x: x,
         y: data.temperature_2m
@@ -600,11 +612,15 @@ function showWeatherData(){
         x: x,
         y: data.precipitation
       });
+      }catch(e){
+        console.log(data);
+      }
     }else{
       const x = (new Date(start_time + 3600 * (p.dist / speed))).toISOString();
       data_temperature.push({ x: x, y: null });
       data_windspeed.push({ x: x, y: null });
-      data_precipitation.push({ x: x, y: y });
+      data_windgusts.push({ x: x, y: null });
+      data_precipitation.push({ x: x, y: null });
     }
   }
   
@@ -684,7 +700,7 @@ function showWeatherData(){
     charts.precipitation.destroy();
   }
   charts.precipitation = new Chart(document.getElementById("canvas_precipitation"), {
-    type: "bar",
+    type: "line",
     data: {
       datasets: [{
         label: "降水量 [mm]",
@@ -719,20 +735,21 @@ window.addEventListener("DOMContentLoaded", function(){
   // GPX読み込み
   document.getElementById("file_gpx").addEventListener("change", async function(evt){
     try{
-      showLoader();
+      if(evt.target.files.length){
+        showLoader();
 
-      gpx_data.length = 0;
-      
-      for(let i = 0; i < evt.target.files.length; i++){
-        console.log(evt.target.files[i]);
-        const gpx = await readXML(evt.target.files[i]);
-        gpx_data.push(parseGPX(gpx, evt.target.files[i].name));
+        gpx_data.length = 0;
+        
+        for(let i = 0; i < evt.target.files.length; i++){
+          console.log(evt.target.files[i]);
+          const gpx = await readXML(evt.target.files[i]);
+          gpx_data.push(parseGPX(gpx, evt.target.files[i].name));
+        }
+        
+        fitBounds();
+        showRoutes();
+        getWeatherData();
       }
-      
-      fitBounds();
-      showRoutes();
-      getWeatherData();
-      
     }catch(err){
       console.error(err);
 
