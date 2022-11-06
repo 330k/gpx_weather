@@ -568,6 +568,31 @@ function showWeatherData(){
   
   map_markers.map(e => e.setMap(null));
   
+  map_markers.push(new google.maps.Marker({
+    position: gpx_data[0].coords[0],
+    icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        strokeColor: "#fff",
+        strokeWeight: 3,
+        fillColor: "#0f0",
+        fillOpacity: 1,
+        scale: 10
+    },
+    map: googlemap.map
+  }));
+  map_markers.push(new google.maps.Marker({
+    position: gpx_data[0].coords.slice(-1)[0],
+    icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        strokeColor: "#fff",
+        strokeWeight: 3,
+        fillColor: "#f00",
+        fillOpacity: 1,
+        scale: 10
+    },
+    map: googlemap.map
+  }));
+
   for(const p of show_points){
     const data = weather_data.getWeatherData(p, start_time + 3600 * (p.dist / speed));
     //console.log(p);
@@ -577,20 +602,6 @@ function showWeatherData(){
       map_markers.push(new google.maps.Marker({
         map: googlemap.map,
         position: p,
-        /*icon: {
-          //path: "M -2,-9 2,-9 0,10 z",
-          //path: "M 0.2,-10 0.2,7 2,3 0,10 -2,3 -0.2,7 -0.2,-10",
-          //path: "M 0,-3 3,-10 0,10 -3,-10 z",
-          path: "M 0,10 -3,6 0,10 3,6 0,10 0,-10",
-          anchor: new google.maps.Point(0, 10),
-          strokeColor: "#800",
-          strokeWeight: 0.5,
-          fillColor: "#F00",
-          fillOpacity: 1,
-          rotation: data.winddirection_10m,
-          scale: Math.sqrt(data.windspeed_10m) * document.getElementById("map_canvas").clientWidth / 1080 * 2 // 面積で風速を表示
-          //scale: data.windspeed_10m * document.documentElement.clientWidth * 0.001 // 長さで風速を表示
-        },*/
         icon: {
           path: "M 0,10 -3,6 0,10 3,6 0,10 0,-10",
           anchor: new google.maps.Point(0, 10),
@@ -599,11 +610,10 @@ function showWeatherData(){
           rotation: data.winddirection_10m,
           scale: data.windspeed_10m * 0.5 // 長さで風速を表示
         },
-        //title: data.windspeed_10m.toFixed(1) + "m/s"
+        title: (new Date(data.time)).toLocaleString() + ": " + data.windspeed_10m.toFixed(1) + "m/s"
       }));
       
-      try{
-        const x = (new Date(data.time)).toISOString();
+      const x = (new Date(data.time)).toISOString();
       data_temperature.push({
         x: x,
         y: data.temperature_2m
@@ -620,9 +630,7 @@ function showWeatherData(){
         x: x,
         y: data.precipitation
       });
-      }catch(e){
-        console.log(data);
-      }
+
     }else{
       const x = (new Date(start_time + 3600 * (p.dist / speed))).toISOString();
       data_temperature.push({ x: x, y: null });
