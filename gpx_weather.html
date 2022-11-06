@@ -490,6 +490,10 @@ function getWeatherData(){
   const speed = document.getElementById("select_speed").value - 0; // km/h
   const show_points = []; // 予報データを表示する緯度経度
   
+  if(gpx_data.length === 0){
+    return;
+  }
+  
   for(const gpx of gpx_data){
     let threshold = 0.0;
     for(const c of gpx.coords){
@@ -539,6 +543,10 @@ function getWeatherData(){
 function showWeatherData(){
   const speed = document.getElementById("select_speed").value - 0; // km/h
   const show_points = []; // 予報データを表示する緯度経度
+  
+  if(gpx_data.length === 0){
+    return;
+  }
   
   for(const gpx of gpx_data){
     let threshold = 0.0;
@@ -1022,7 +1030,7 @@ input[type=file] {
 <div id="wrapper">
  <div id="top_panel">
   <div id="flexbox_gpx"><label>GPXファイル<br><input type="file" id="file_gpx" accept=".gpx"></label></div>
-  <div id="flexbox_start_datetime"><label>スタート日時<br><select id="select_start_datetime"></select></label></div>
+  <div id="flexbox_start_datetime"><label>スタート日時<br><select id="select_start_datetime"><option value="">----/--/-- --:--:--</option></select></label></div>
   <div id="flexbox_speed"><label>速度<br><select id="select_speed">
    <!--<option value="0">GPXファイルの時刻を使用する</option>-->
    <option value="12">12 km/h</option>
