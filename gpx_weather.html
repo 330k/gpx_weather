@@ -16,12 +16,15 @@
 <link rel="favicon" href="https://www.330k.info/software/gpx-compare/icon240.png">
 <link rel="apple-touch-icon" sizes="240x240" href="https://www.330k.info/software/gpx-compare/icon240.png">
 <script defer src="https://maps.google.com/maps/api/js?key=AIzaSyA_aFkNjCuqBNETe8bxBk8_cnRQtQzdOG8&amp;callback=initMap"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment-with-locales.min.js" integrity="sha512-42PE0rd+wZ2hNXftlM78BSehIGzezNeQuzihiBCvUEB3CVxHvsShF86wBWwQORNxNINlBPuq7rG4WWhNiTVHFg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+
 <script defer>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(registration) {
       //Service Worker(sw.js)が登録できたら特に何もしない。
-      console.log("ServiceWorker registered");
     }, function(err) {
       //Service Worker(sw.js)の登録が失敗した場合はブラウザにログを出す。
       console.log('ServiceWorker registration failed: ', err);
@@ -29,7 +32,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>
+<script defer>
 "use strict";
 /* Copyright 2022 Kei Misawa All Rights Reserved */
 
@@ -41,6 +44,11 @@ const googlemap = {
 const gpx_data = [];
 const weather_data = new WeatherData();
 const map_markers = [];
+const charts = {
+  temperature: null,
+  wind: null,
+  precipitation: null
+};
 
 /**
  * Hubeny測地線距離計算式(標準)
@@ -368,7 +376,7 @@ function WeatherData(){
   // timeはGMTのgetTimeで管理する
   
   const now = new Date();
-  const start_date = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const start_date = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
   const end_date = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 8);
   const start_date_str = start_date.getFullYear() + "-" + ("0" + (start_date.getMonth() + 1)).slice(-2) + "-" + ("0" + start_date.getDate()).slice(-2);
   const end_date_str = end_date.getFullYear() + "-" + ("0" + (end_date.getMonth() + 1)).slice(-2) + "-" + ("0" + end_date.getDate()).slice(-2);
@@ -398,7 +406,7 @@ function WeatherData(){
     
     for(const p of Object.values(latlngs)){
       promises.push(new Promise((resolve, reject) => {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lng}&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,winddirection_10m&windspeed_unit=ms&start_date=${start_date_str}&end_date=${end_date_str}`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lng}&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,winddirection_10m,windgusts_10m&windspeed_unit=ms&start_date=${start_date_str}&end_date=${end_date_str}`;
         fetch(url).then((response) => {
           return response.json();
         }).then((json) => {
@@ -415,6 +423,7 @@ function WeatherData(){
                 weathercode: json.hourly.weathercode[i],
                 windspeed_10m: json.hourly.windspeed_10m[i],
                 winddirection_10m: json.hourly.winddirection_10m[i],
+                windgusts_10m: json.hourly.windgusts_10m[i]
               });
             }
           }
@@ -500,11 +509,18 @@ function getWeatherData(){
     console.log(weather_data.listWeatherDataTime(show_points.slice(-1)[0]).slice(-1)[0]);
     
     const buf = [];
+    const now = Date.now();
+    let selected_flag = false;
     for(const t of weather_data.listWeatherDataTime(show_points[0])){
       const time = new Date(t);
+      let selected = "";
       
-      // TO DO: ゴール時刻がデータ取得範囲を超えた場合に除外する
-      buf.push(`<option value="${t}">${time.toLocaleString()}</option>`);
+      if((time > now) && !selected_flag){
+        selected = "selected";
+        selected_flag = true;
+      }
+      
+      buf.push(`<option value="${t}" ${selected}>${time.toLocaleString()}</option>`);
     }
     
     const ele_start_datetime = document.getElementById("select_start_datetime");
@@ -517,7 +533,7 @@ function getWeatherData(){
 }
 
 /**
- * 気象データを地図に表示
+ * 気象データを表示(地図 + グラフ)
  */
 function showWeatherData(){
   const speed = document.getElementById("select_speed").value - 0; // km/h
@@ -535,6 +551,11 @@ function showWeatherData(){
   }
   console.log(show_points);
   const start_time =  document.getElementById("select_start_datetime").value - 0;
+  
+  const data_temperature = [];
+  const data_windspeed = [];
+  const data_windgusts = [];
+  const data_precipitation = [];
   
   map_markers.map(e => e.setMap(null));
   
@@ -556,13 +577,142 @@ function showWeatherData(){
           fillColor: "#F00",
           fillOpacity: 1,
           rotation: data.winddirection_10m,
-          scale: Math.sqrt(data.windspeed_10m) * document.documentElement.clientWidth / 1080 * 2 // 面積で風速を表示
+          scale: Math.sqrt(data.windspeed_10m) * document.getElementById("map_canvas").clientWidth / 1080 * 2 // 面積で風速を表示
           //scale: nearestpointdata.wind_speed * document.documentElement.clientWidth * 0.001 // 長さで風速を表示
         },
         //title: data.windspeed_10m.toFixed(1) + "m/s"
       }));
+      
+      const x = (new Date(data.time)).toISOString();
+      data_temperature.push({
+        x: x,
+        y: data.temperature_2m
+      });
+      data_windspeed.push({
+        x: x,
+        y: data.windspeed_10m
+      });
+      data_windgusts.push({
+        x: x,
+        y: data.windgusts_10m
+      });
+      data_precipitation.push({
+        x: x,
+        y: data.precipitation
+      });
+    }else{
+      const x = (new Date(start_time + 3600 * (p.dist / speed))).toISOString();
+      data_temperature.push({ x: x, y: null });
+      data_windspeed.push({ x: x, y: null });
+      data_precipitation.push({ x: x, y: y });
     }
   }
+  
+  if(charts.temperature){
+    charts.temperature.destroy();
+  }
+  charts.temperature = new Chart(document.getElementById("canvas_temperature"), {
+    type: "line",
+    data: {
+      datasets: [{
+        label: "気温 [℃]",
+        lineTension: 0,
+        borderColor: "#333",
+        fill: true,
+        backgroundColor: "#ccc",
+        data: data_temperature
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          type: "time",
+          time: {
+            unit: "day",
+            displayFormats: {
+              day: "YYYY/MM/DD"
+            }
+          }
+        }
+      },
+      animation: false
+    }
+  });
+  
+  if(charts.wind){
+    charts.wind.destroy();
+  }
+  charts.wind = new Chart(document.getElementById("canvas_windspeed"), {
+    type: "line",
+    data: {
+      datasets: [{
+        label: "風速 [m/s]",
+        lineTension: 0,
+        borderColor: "#f00",
+        fill: true,
+        backgroundColor: "#f88",
+        data: data_windspeed
+      }, {
+        label: "瞬間風速 [m/s]",
+        lineTension: 0,
+        borderColor: "#555",
+        fill: true,
+        backgroundColor: "#ddd",
+        data: data_windgusts
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          type: "time",
+          time: {
+            unit: "day",
+            displayFormats: {
+              day: "YYYY/MM/DD"
+            }
+          }
+        },
+        y: {
+          min: 0
+        }
+      },
+      animation: false
+    }
+  });
+  
+  if(charts.precipitation){
+    charts.precipitation.destroy();
+  }
+  charts.precipitation = new Chart(document.getElementById("canvas_precipitation"), {
+    type: "bar",
+    data: {
+      datasets: [{
+        label: "降水量 [mm]",
+        lineTension: 0,
+        borderColor: "#00f",
+        fill: true,
+        backgroundColor: "#88f",
+        data: data_precipitation
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          type: "time",
+          time: {
+            unit: "day",
+            displayFormats: {
+              day: "YYYY/MM/DD"
+            }
+          }
+        },
+        y: {
+          min: 0
+        }
+      },
+      animation: false
+    }
+  });
 }
 
 window.addEventListener("DOMContentLoaded", function(){
@@ -695,23 +845,16 @@ window.addEventListener("drop", function(e){
 <style>
 * { margin: 0; padding: 0}
 #wrapper {
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
-}
-#map_canvas {
-  position: absolute;
-  top: 50px;
-  right: 0;
-  width: 100%;
-  height: calc(100% - 50px);
+  
+  display: flex;
+  flex-direction: column;
 }
 #top_panel {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
-  height: 50px;
+  flex: 0 0 50px;
   overflow: hidden;
   background-color: #eee;
   display: flex;
@@ -805,6 +948,25 @@ input[type=file] {
   .omittable{ display: none }
 }
 
+#map_panel {
+  flex: 1;
+  display: flex;
+}
+#map_canvas {
+  flex: 1;
+}
+#chart_panel {
+  flex: 0 1 25%;
+  display: flex;
+  flex-direction: column;
+}
+#chart_panel > div {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 #loader_bg {
   position: fixed;
   top: 0;
@@ -856,7 +1018,14 @@ input[type=file] {
   <div id="flexbox_fullscreen"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 513.32 513.32' xml:space='preserve'%3E%3Cpath d='M177.523 305.853 42.777 440.6v-98.387H0V513.32h171.107v-42.777H74.859l134.746-134.746z'/%3E%3Cpath d='M470.543 440.6 72.72 42.777h98.387V0H0v171.107h42.777V72.72L440.6 470.543h-98.387v42.777H513.32V342.213h-42.777z'/%3E%3Cpath d='M342.213 0v42.777h100.526L307.992 177.523l29.943 29.944L470.543 74.859v96.248h42.777V0z'/%3E%3C/svg%3E" width="24" height="24" title="フルスクリーン"></div>
   <div id="flexbox_link"><a href="https://www.330k.info/software/gpx-compare/" target="_blank" title="説明ページを開きます"><img src="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cg data-name='Layer 2'%3E%3Cpath d='M16 12a2 2 0 1 1 2-2 2 2 0 0 1-2 2Zm0-2Z'/%3E%3Cpath d='M16 29a13 13 0 1 1 13-13 13 13 0 0 1-13 13Zm0-24a11 11 0 1 0 11 11A11 11 0 0 0 16 5Z'/%3E%3Cpath d='M16 24a2 2 0 0 1-2-2v-6a2 2 0 0 1 4 0v6a2 2 0 0 1-2 2Zm0-8Z'/%3E%3C/g%3E%3Cpath fill='none' d='M0 0h32v32H0z'/%3E%3C/svg%3E" width="32" height="32"></a></div>
  </div>
- <div id="map_canvas"></div>
+ <div id="map_panel">
+  <div id="map_canvas"></div>
+  <div id="chart_panel">
+   <div id="chart_temperature"><canvas id="canvas_temperature"></canvas></div>
+   <div id="chart_windspeed"><canvas id="canvas_windspeed"></canvas></div>
+   <div id="chart_precipitation"><canvas id="canvas_precipitation"></canvas></div>
+  </div>
+ </div>
 </div>
 <div id="dist_info"></div>
 <div id="loader_bg">
