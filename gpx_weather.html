@@ -414,7 +414,7 @@ function WeatherData(){
     
     for(const p of Object.values(latlngs)){
       promises.push(new Promise((resolve, reject) => {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lng}&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,winddirection_10m,windgusts_10m&windspeed_unit=ms&start_date=${start_date_str}&end_date=${end_date_str}`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lng}&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,winddirection_10m,windgusts_10m,cloudcover&windspeed_unit=ms&start_date=${start_date_str}&end_date=${end_date_str}`;
         /*fetch(url).then((response) => {
           return response.json();
         }).then((json) => {*/
@@ -432,7 +432,8 @@ function WeatherData(){
                 weathercode: json.hourly.weathercode[i],
                 windspeed_10m: json.hourly.windspeed_10m[i],
                 winddirection_10m: json.hourly.winddirection_10m[i],
-                windgusts_10m: json.hourly.windgusts_10m[i]
+                windgusts_10m: json.hourly.windgusts_10m[i],
+                cloudcover: json.hourly.cloudcover[i]
               });
             }
           }
@@ -569,10 +570,13 @@ function showWeatherData(){
   console.log(show_points);
   const start_time =  document.getElementById("select_start_datetime").value - 0;
   
-  const data_temperature = [];
-  const data_windspeed = [];
-  const data_windgusts = [];
-  const data_precipitation = [];
+  const graph_data = {
+    temperature: [],
+    windspeed: [],
+    windgusts: [],
+    precipitation: [],
+    cloudcover: []
+  };
   
   map_markers.map(e => e.setMap(null));
   
@@ -622,31 +626,51 @@ function showWeatherData(){
       }));
       
       const x = (new Date(data.time)).toISOString();
-      data_temperature.push({
+      graph_data.temperature.push({
         x: x,
         y: data.temperature_2m
       });
-      data_windspeed.push({
+      graph_data.windspeed.push({
         x: x,
         y: data.windspeed_10m
       });
-      data_windgusts.push({
+      graph_data.windgusts.push({
         x: x,
         y: data.windgusts_10m
       });
-      data_precipitation.push({
+      graph_data.precipitation.push({
         x: x,
         y: data.precipitation
+      });
+      graph_data.cloudcover.push({
+        x: x,
+        y: data.cloudcover
       });
 
     }else{
       const x = (new Date(start_time + 3600 * (p.dist / speed))).toISOString();
-      data_temperature.push({ x: x, y: null });
-      data_windspeed.push({ x: x, y: null });
-      data_windgusts.push({ x: x, y: null });
-      data_precipitation.push({ x: x, y: null });
+      graph_data.temperature.push({ x: x, y: null });
+      graph_data.windspeed.push({ x: x, y: null });
+      graph_data.windgusts.push({ x: x, y: null });
+      graph_data.precipitation.push({ x: x, y: null });
+      graph_data.cloudcover.push({ x: x, y: null });
     }
   }
+  
+  const xopts = {
+    type: "time",
+    time: {
+      unit: "hour",
+      displayFormats: {
+        hour: "HH:mm"//"MM/DD HH:mm"
+      }
+    },
+    ticks: {
+//      autoSkip: false,
+      maxRotation: 90,
+      minRotation: 90
+    }
+  };
   
   if(charts.temperature){
     charts.temperature.destroy();
@@ -660,22 +684,20 @@ function showWeatherData(){
         borderColor: "#333",
         fill: true,
         backgroundColor: "#ccc",
-        data: data_temperature
+        pointRadius: 0,
+        data: graph_data.temperature
       }]
     },
     options: {
       scales: {
-        x: {
-          type: "time",
-          time: {
-            unit: "day",
-            displayFormats: {
-              day: "YYYY/MM/DD"
-            }
-          }
-        }
+        x: xopts
       },
-      animation: false
+      interaction: {
+        intersect: false,
+        mode: "x"
+      },
+      animation: false,
+      maintainAspectRatio: false
     }
   });
   
@@ -691,32 +713,31 @@ function showWeatherData(){
         borderColor: "#f00",
         fill: true,
         backgroundColor: "#f88",
-        data: data_windspeed
+        pointRadius: 0,
+        data: graph_data.windspeed
       }, {
         label: "瞬間風速 [m/s]",
         lineTension: 0,
         borderColor: "#555",
         fill: true,
         backgroundColor: "#ddd",
-        data: data_windgusts
+        pointRadius: 0,
+        data: graph_data.windgusts
       }]
     },
     options: {
       scales: {
-        x: {
-          type: "time",
-          time: {
-            unit: "day",
-            displayFormats: {
-              day: "YYYY/MM/DD"
-            }
-          }
-        },
+        x: xopts,
         y: {
           min: 0
         }
       },
-      animation: false
+      interaction: {
+        intersect: false,
+        mode: "x"
+      },
+      animation: false,
+      maintainAspectRatio: false
     }
   });
   
@@ -724,33 +745,55 @@ function showWeatherData(){
     charts.precipitation.destroy();
   }
   charts.precipitation = new Chart(document.getElementById("canvas_precipitation"), {
-    type: "line",
     data: {
       datasets: [{
+        type: "bar",
+        yAxisID: "y1",
         label: "降水量 [mm]",
         lineTension: 0,
         borderColor: "#00f",
         fill: true,
         backgroundColor: "#88f",
-        data: data_precipitation
+        data: graph_data.precipitation
+      }, {
+        type: "line",
+        yAxisID: "y2",
+        label: "雲量 [%]",
+        lineTension: 0,
+        borderColor: "#333",
+        fill: true,
+        backgroundColor: "#888",
+        pointRadius: 0,
+        data: graph_data.cloudcover
       }]
     },
     options: {
       scales: {
-        x: {
-          type: "time",
-          time: {
-            unit: "day",
-            displayFormats: {
-              day: "YYYY/MM/DD"
-            }
-          }
-        },
-        y: {
+        x: xopts,
+        /*y: {
           min: 0
+        }*/
+        
+        y1: {
+            type: "linear",
+            position: "left",
+            //max: 30,
+            suggestedMax: 10,
+            min: 0,
+        },
+        y2: {
+            type: "linear", 
+            position: "right",
+            max: 100,
+            min: 0
         }
       },
-      animation: false
+      interaction: {
+        intersect: false,
+        mode: "x"
+      },
+      animation: false,
+      maintainAspectRatio: false
     }
   });
 }
@@ -1120,6 +1163,7 @@ input[type=file] {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 5px;
 }
 
 #loader_bg {
