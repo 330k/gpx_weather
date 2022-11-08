@@ -579,6 +579,7 @@ function showWeatherData(){
   };
   
   map_markers.map(e => e.setMap(null));
+  map_markers.length = 0;
   
   map_markers.push(new google.maps.Marker({
     position: gpx_data[0].coords[0],
@@ -835,6 +836,15 @@ window.addEventListener("DOMContentLoaded", function(){
   
   document.getElementById("flexbox_reset").addEventListener("click", async function(evt){
     document.getElementById("file_gpx").value = "";
+    gpx_data.length = 0;
+    map_markers.map(e => e.setMap(null));
+    map_markers.length = 0;
+    
+    for(let i in charts){
+      charts[i].destroy();
+      charts[i] = null;
+    }
+    document.getElementById("select_start_datetime").innerHTML = '<option value="">----/--/-- --:--:--</option>';
     
     showRoutes();
   });
@@ -1068,13 +1078,17 @@ function LayeredCache(cache_name, parser, l1_cache_size = 1000, cache_expiration
   padding: 3px;
   box-sizing: border-box;
   line-height: 100%;
-  vertical-align: middle;
+  
+  display:flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
 }
+
 #flexbox_gpx label, #flexbox_start_datetime label, #flexbox_speed label {
   display: block;
   white-space: nowrap;
   width: 100%;
-  height: 100%;
   line-height: 16px;
 }
 input[type=file] {
@@ -1089,6 +1103,11 @@ input[type=file] {
   border-radius: 3px;
   padding: 3px;
   box-sizing: border-box;
+  
+  display:flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
 }
 #flexbox_speed {
   flex: 0 0 80px;
@@ -1098,6 +1117,11 @@ input[type=file] {
   border-radius: 3px;
   padding: 3px;
   box-sizing: border-box;
+  
+  display:flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
 }
 #flexbox_reset {
   flex: 0 0 50px;
@@ -1111,6 +1135,11 @@ input[type=file] {
   vertical-align: middle;
   line-height: 40px;
   text-align: center;
+  
+  display:flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
 }
 #flexbox_gpx:hover, #droparea_target:hover, #flexbox_reset:hover {
   background-color: #ddd;
