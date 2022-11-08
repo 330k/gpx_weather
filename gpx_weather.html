@@ -495,7 +495,7 @@ function WeatherData(){
 /**
  * ルート上の天候情報を取得する
  */
-function getWeatherData(){
+function getRouteWeatherData(){
   const speed = document.getElementById("select_speed").value - 0; // km/h
   const show_points = []; // 予報データを表示する緯度経度
   
@@ -729,6 +729,7 @@ function showWeatherData(){
       scales: {
         x: xopts,
         y: {
+          suggestedMax: 20,
           min: 0
         }
       },
@@ -775,17 +776,17 @@ function showWeatherData(){
         }*/
         
         y1: {
-            type: "linear",
-            position: "left",
-            //max: 30,
-            suggestedMax: 10,
-            min: 0,
+          type: "linear",
+          position: "left",
+          //max: 30,
+          suggestedMax: 10,
+          min: 0
         },
         y2: {
-            type: "linear", 
-            position: "right",
-            max: 100,
-            min: 0
+          type: "linear", 
+          position: "right",
+          max: 100,
+          min: 0
         }
       },
       interaction: {
@@ -815,7 +816,7 @@ window.addEventListener("DOMContentLoaded", function(){
         
         fitBounds();
         showRoutes();
-        getWeatherData();
+        getRouteWeatherData();
       }
     }catch(err){
       console.error(err);
@@ -830,7 +831,7 @@ window.addEventListener("DOMContentLoaded", function(){
   document.getElementById("select_start_datetime").addEventListener("change", showWeatherData);
   
   // 速度変更
-  document.getElementById("select_speed").addEventListener("change", getWeatherData);
+  document.getElementById("select_speed").addEventListener("change", getRouteWeatherData);
   
   document.getElementById("flexbox_reset").addEventListener("click", async function(evt){
     document.getElementById("file_gpx").value = "";
@@ -1069,7 +1070,7 @@ function LayeredCache(cache_name, parser, l1_cache_size = 1000, cache_expiration
   line-height: 100%;
   vertical-align: middle;
 }
-#flexbox_gpx label, #flexbox_threshold label {
+#flexbox_gpx label, #flexbox_start_datetime label, #flexbox_speed label {
   display: block;
   white-space: nowrap;
   width: 100%;
