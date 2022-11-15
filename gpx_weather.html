@@ -846,10 +846,13 @@ window.addEventListener("DOMContentLoaded", function(){
     map_markers.length = 0;
     
     for(let i in charts){
-      charts[i].destroy();
+      if(charts[i]){
+        charts[i].destroy();
+      }
       charts[i] = null;
     }
     document.getElementById("select_start_datetime").innerHTML = "";
+    document.getElementById("select_speed").value = "15";
     
     showRoutes();
   });
