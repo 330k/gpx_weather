@@ -1248,6 +1248,19 @@ input[type=file] {
   border-color: #000;
   border-style: solid;
 }
+
+@media screen and (orientation: portrait) {
+  #map_panel {
+    flex-direction: column;
+  }
+  #chart_panel {
+    flex-direction: row;
+  }
+  #chart_panel > div {
+    width: 30%;
+  }
+}
+
 </style>
 </head>
 <body>
