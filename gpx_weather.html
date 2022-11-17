@@ -1171,8 +1171,8 @@ input[type=file] {
 #flexbox_target_designation > div {
   flex: 0 0 50%;
 }
-#select_start_datetime {
-  width: 100%;
+#flexbox_target_designation input[type=number] {
+  width: 4em;
 }
 
 #flexbox_reset {
@@ -1305,8 +1305,8 @@ input[type=file] {
   <div id="flexbox_gpx"><label accesskey="o">GPXファイル<br><input type="file" id="file_gpx" accept=".gpx"></label></div>
   <div id="flexbox_start_datetime"><label accesskey="s">スタート日時<br><select id="select_start_datetime"></select></label></div>
   <div id="flexbox_target_designation">
-   <div><label><input id="radio_speed" type="radio" name="designate_method" value="speed" checked>速度で指定 <input id="input_speed" value="15" type="number" min="10" max="40"> km/h</label></div>
-   <div><label><input id="radio_duration" type="radio" name="designate_method" value="duration">時間で指定 <input id="input_duration" value="24" type="number" min="1" max="300" disabled> h</label></div>
+   <div><label><input id="radio_speed" type="radio" name="designate_method" value="speed" checked>速度で指定<br><input id="input_speed" value="15" type="number" min="10" max="40"> km/h</label></div>
+   <div><label><input id="radio_duration" type="radio" name="designate_method" value="duration">時間で指定<br><input id="input_duration" value="24" type="number" min="1" max="300" disabled> h</label></div>
   </div>
   <div id="flexbox_reset">Clear</div>
   <div id="flexbox_fullscreen"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 513.32 513.32' xml:space='preserve'%3E%3Cpath d='M177.523 305.853 42.777 440.6v-98.387H0V513.32h171.107v-42.777H74.859l134.746-134.746z'/%3E%3Cpath d='M470.543 440.6 72.72 42.777h98.387V0H0v171.107h42.777V72.72L440.6 470.543h-98.387v42.777H513.32V342.213h-42.777z'/%3E%3Cpath d='M342.213 0v42.777h100.526L307.992 177.523l29.943 29.944L470.543 74.859v96.248h42.777V0z'/%3E%3C/svg%3E" width="24" height="24" title="フルスクリーン"></div>
