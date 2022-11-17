@@ -1107,10 +1107,11 @@ html, body {
 }
 #top_panel {
   width: 100%;
-  flex: 0 0 50px;
+  flex: none;
   overflow: hidden;
   background-color: #eee;
   display: flex;
+  flex-wrap: wrap;
 }
 #flexbox_gpx {
   position: relative;
@@ -1187,7 +1188,8 @@ input[type=file] {
   line-height: 40px;
   text-align: center;
   
-  display:flex;
+  display: none;
+  /*display:flex;*/
   flex-direction: row;
   justify-content: center;
   align-items: center;
