@@ -495,7 +495,7 @@ function WeatherData(){
  * ルート上の天候情報を取得する
  */
 function getRouteWeatherData(){
-  const speed = document.getElementById("input_speed").value - 0; // km/h
+  const speed = document.getElementById("input_speed").dataset.true_speed - 0;
   const show_points = []; // 予報データを表示する緯度経度
   
   if(gpx_data.length === 0){
@@ -555,7 +555,7 @@ function getRouteWeatherData(){
  * 気象データを表示(地図 + グラフ)
  */
 function showWeatherData(){
-  const speed = document.getElementById("input_speed").value - 0; // km/h
+  const speed = document.getElementById("input_speed").dataset.true_speed - 0;
   const show_points = []; // 予報データを表示する緯度経度
   
   if(gpx_data.length === 0){
@@ -841,11 +841,14 @@ window.addEventListener("DOMContentLoaded", function(){
     document.getElementById("input_speed").disabled = false;
     document.getElementById("input_speed").dispatchEvent(new Event("change"));
   });
+  document.getElementById("input_speed").dataset.true_speed = document.getElementById("input_speed").value;
   document.getElementById("input_speed").addEventListener("change", function(evt){
     const speed = document.getElementById("input_speed").value - 0;
+    document.getElementById("input_speed").dataset.true_speed = speed;
     if(gpx_data[0]){
       const dist = gpx_data[0].coords.slice(-1)[0].dist;
-      document.getElementById("input_duration").value = (0.01 * Math.floor(100 * (0.001 * dist / speed))).toFixed(2);
+      const duration = 0.001 * dist / speed;
+      document.getElementById("input_duration").value = (0.01 * Math.floor(100 * duration)).toFixed(2);
     }
     document.getElementById("input_duration").disabled = true;
     
@@ -862,7 +865,9 @@ window.addEventListener("DOMContentLoaded", function(){
     const duration = document.getElementById("input_duration").value - 0;
     if(gpx_data[0]){
       const dist = gpx_data[0].coords.slice(-1)[0].dist;
-      document.getElementById("input_speed").value = (0.01 * Math.floor(100 * (0.001 * dist / duration))).toFixed(2);
+      const speed = 0.001 * dist / duration;
+      document.getElementById("input_speed").dataset.true_speed = 1e-8 * Math.floor(1e8 * speed);
+      document.getElementById("input_speed").value = (0.01 * Math.floor(100 * speed)).toFixed(2);
     }
     document.getElementById("input_speed").disabled = true;
     
