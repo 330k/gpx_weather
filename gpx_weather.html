@@ -700,7 +700,8 @@ function showWeatherData(){
       },
       interaction: {
         intersect: false,
-        mode: "x"
+        mode: "index",
+        axis: "x"
       },
       animation: false,
       maintainAspectRatio: false
@@ -741,7 +742,8 @@ function showWeatherData(){
       },
       interaction: {
         intersect: false,
-        mode: "x"
+        mode: "index",
+        axis: "x"
       },
       animation: false,
       maintainAspectRatio: false
@@ -777,10 +779,6 @@ function showWeatherData(){
     options: {
       scales: {
         x: xopts,
-        /*y: {
-          min: 0
-        }*/
-        
         y1: {
           type: "linear",
           position: "left",
@@ -797,7 +795,8 @@ function showWeatherData(){
       },
       interaction: {
         intersect: false,
-        mode: "x"
+        mode: "index",
+        axis: "x"
       },
       animation: false,
       maintainAspectRatio: false
