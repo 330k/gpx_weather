@@ -3,18 +3,6 @@
 <head>
 <meta charset="utf-8">
 <title>GPX 天候情報</title>
-<meta property="og:title" content="GPX 天候情報" />
-<meta property="og:description" content="Poor Man's Epic Ride Weather" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="hhttps://330k.github.io/gpx_weather/gpx_weather.html" />
-<meta property="og:image" content="https://330k.github.io/gpx_weather/icons/icon_256x256.png"/>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="application-name" content="GPX 天候情報">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
-<link rel="favicon" type="image/png"  href="icons/icon_256x256.png">
-<link rel="apple-touch-icon" sizes="240x240" href="icons/icon_240x240.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.1/dist/leaflet.css" integrity="sha256-sA+zWATbFveLLNqWO2gtiw3HL/lh1giY/Inf1BJ0z14=" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.1/dist/leaflet.js" integrity="sha256-NDI0K41gVbWqfkkaHj15IzU7PtMoelkzyKp8TOaFQ3s=" crossorigin=""></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -24,18 +12,6 @@
 <script defer src="hubeny.js"></script>
 <script defer src="layeredcache.js"></script>
 <script defer src="dragdrop.js"></script>
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function() {
-    navigator.serviceWorker.register("sw.js").then(function(registration) {
-      //Service Worker(sw.js)が登録できたら特に何もしない。
-    }, function(err) {
-      //Service Worker(sw.js)の登録が失敗した場合はブラウザにログを出す。
-      console.log("ServiceWorker registration failed: ", err);
-    });
-  });
-}
-</script>
 <script>
 "use strict";
 /* Copyright 2022 Kei Misawa All Rights Reserved */
@@ -95,21 +71,28 @@ function parseGPX(xml, name){
   let min_lng = Number.MAX_VALUE;
   let max_lng = -Number.MAX_VALUE;
 
-  let d = 0.0;
+  let dist = 0.0;
   for(let i = 0; i < trkpts.length; i++){
     const lat = trkpts[i].getAttribute("lat") - 0;
     const lng = trkpts[i].getAttribute("lon") - 0;
     const xy = latlng2MercatorXY(lat, lng);
+    let dir = 0;
     
     if(i > 0){
-      d += hubeny(coords[coords.length - 1].lat, coords[coords.length - 1].lng, lat, lng);
+      const lat0 = coords[coords.length - 1].lat;
+      const lng0 = coords[coords.length - 1].lng;
+      const DEG = Math.PI / 180;
+      dist += hubeny(lat0, lng0, lat, lng);
+      dir = (450 - Math.atan2(Math.sin((lng-lng0) * DEG), (Math.cos(lat0 * DEG) * Math.tan(lat * DEG) - Math.sin(lat0 * DEG) * Math.cos((lng-lng0) * DEG))) / Math.PI * 180) % 360;
     }
+    //console.log(dir);
     coords.push({
       lat: lat,
       lng: lng,
-      dist: d,
+      dist: dist,
       X: xy.X,
-      Y: xy.Y
+      Y: xy.Y,
+      dir: dir
     });
     
     if(lat < min_lat) min_lat = lat;
@@ -153,14 +136,6 @@ function latlng2MercatorXY(lat, lng){
  */
 function drawPolyline(coords, name = "", options = {strokeColor: "#f00", strokeOpacity: 1.0, strokeWeight: 2.0, zIndex: 1}, showInfo = true){
   // 表示用のPolyline
-  /*const line_display = new google.maps.Polyline({
-    path: coords,
-    geodesic: true,
-    ...options
-  });
-  googlemap.lines.push(line_display);
-  line_display.setMap(googlemap.map);*/
-
   const polyline_coords = coords.map((e) => [e.lat, e.lng]);
   const line = L.polyline(polyline_coords, options);
   line.addTo(mapobjects.map);
@@ -465,7 +440,9 @@ function getRouteWeatherData(){
         selected_flag = true;
       }
       
-      buf.push(`<option value="${t}" ${selected}>${time.toLocaleString()}</option>`);
+      const time_formated = time.getFullYear() + "/" + ("0" + (time.getMonth() + 1)).slice(-2) + "/" + ("0" + time.getDate()).slice(-2) + " (" + 
+        ("日月火水木金土".split(""))[time.getDay()] + ") " + ("0" + time.getHours()).slice(-2) + ":" + ("0" + time.getMinutes()).slice(-2);
+      buf.push(`<option value="${t}" ${selected}>${time_formated}</option>`);
     }
     
     const ele_start_datetime = document.getElementById("select_start_datetime");
@@ -534,25 +511,15 @@ function showWeatherData(){
     
     if(data){
       //const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><path style="fill:none;stroke:#000000;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;paint-order:normal" d="M 94,92 100,100 106,92 M 100,100 100,${100-10*data.windspeed_10m}" transform="rotate(${data.winddirection_10m},100,100)"/></svg>`;
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><path vector-effect="non-scaling-stroke" style="fill:none;stroke:#000000;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;paint-order:normal" d="M -3,6 0,10 M 3,6 0,10 0,-10" transform="translate(100,90) translate(0,10) scale(${0.5*data.windspeed_10m}) translate(0,-10) rotate(${data.winddirection_10m},0,10)"/></svg>`;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><path vector-effect="non-scaling-stroke" style="fill:none;stroke:#000000;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;paint-order:normal" d="M -3,6 0,10 M 3,6 0,10 0,-10" transform="translate(100,90) translate(0,10) scale(${Math.max(0.5*data.windspeed_10m,0.1)}) translate(0,-10) rotate(${data.winddirection_10m},0,10)"/></svg>`;
       
       mapobjects.wind_markers.push(L.marker([p.lat, p.lng] , {
         icon: L.icon({
           iconUrl: "data:image/svg+xml;base64," + btoa(svg),
           iconSize: [200, 200],
           iconAnchor: [100, 100]
-        })
-        /*
-        icon: {
-          path: "M 0,10 -3,6 0,10 3,6 0,10 0,-10",
-          anchor: new google.maps.Point(0, 10),
-          strokeColor: "#000",
-          strokeWeight: 3,
-          rotation: data.winddirection_10m,
-          scale: data.windspeed_10m * 0.5 // 長さで風速を表示
-        },
-        title: (new Date(data.time)).toLocaleString() + ": " + data.windspeed_10m.toFixed(1) + "m/s"
-        */
+        }),
+        keyboard: false
       }).addTo(mapobjects.map));
       
       const x = (new Date(data.time)).toISOString();
@@ -1063,8 +1030,8 @@ input[type=file] {
   <div id="flexbox_gpx"><label accesskey="o">GPXファイル<br><input type="file" id="file_gpx" accept=".gpx"></label></div>
   <div id="flexbox_start_datetime"><label accesskey="s">スタート日時<br><select id="select_start_datetime"></select></label></div>
   <div id="flexbox_target_designation">
-   <div><label><input id="radio_speed" type="radio" name="designate_method" value="speed" checked>速度で指定<br><input id="input_speed" value="15" type="number" min="10" max="40" accesskey="v"> km/h</label></div>
-   <div><label><input id="radio_duration" type="radio" name="designate_method" value="duration">時間で指定<br><input id="input_duration" value="24" type="number" min="1" max="300" disabled accesskey="c"> h</label></div>
+   <div><label><input id="radio_speed" type="radio" name="designate_method" value="speed" checked accesskey="z">速度で指定<br><input id="input_speed" value="15" type="number" min="10" max="40" accesskey="x"> km/h</label></div>
+   <div><label><input id="radio_duration" type="radio" name="designate_method" value="duration" accesskey="c">時間で指定<br><input id="input_duration" value="24" type="number" min="1" max="300" disabled accesskey="v"> h</label></div>
   </div>
   <div id="flexbox_reset">Clear</div>
  </div>

@@ -539,7 +539,9 @@ function getRouteWeatherData(){
         selected_flag = true;
       }
       
-      buf.push(`<option value="${t}" ${selected}>${time.toLocaleString()}</option>`);
+      const time_formated = time.getFullYear() + "/" + ("0" + (time.getMonth() + 1)).slice(-2) + "/" + ("0" + time.getDate()).slice(-2) + " (" + 
+        ("日月火水木金土".split(""))[time.getDay()] + ") " + ("0" + time.getHours()).slice(-2) + ":" + ("0" + time.getMinutes()).slice(-2);
+      buf.push(`<option value="${t}" ${selected}>${time_formated}</option>`);
     }
     
     const ele_start_datetime = document.getElementById("select_start_datetime");
@@ -704,7 +706,12 @@ function showWeatherData(){
         axis: "x"
       },
       animation: false,
-      maintainAspectRatio: false
+      maintainAspectRatio: false,
+      onHover: function(evt, item, legend){
+        if(item.length){
+          console.log(show_points[item[0].index]);
+        }
+      }
     }
   });
   
