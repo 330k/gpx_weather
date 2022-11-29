@@ -38,7 +38,8 @@ if ("serviceWorker" in navigator) {
 const googlemap = {
   map: null,
   lines: [],
-  dist_marker: null
+  dist_marker: null,
+  graph_marker: null
 };
 const gpx_data = [];
 const lcache = new LayeredCache("gpx-weather", function(response){
@@ -680,6 +681,31 @@ function showWeatherData(){
     }
   };
   
+  if(googlemap.graph_marker){
+    googlemap.graph_marker.setMap(null);
+  }
+  googlemap.graph_marker = new google.maps.Marker({
+    position: show_points[0],
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 5,// 0.5 * options.strokeWeight + 4,
+      fillColor: "#ccc",//options.strokeColor,
+      fillOpacity: 1,
+      strokeColor: "#000",//options.strokeColor,
+      strokeOpacity: 1,
+      strokeWeight: 1,
+      zIndex: 100
+    },
+    map: googlemap.map
+  });
+  const hover = function(evt, item, legend){
+    if(item && item.length){
+      //console.log(show_points[item[0].index]);
+      googlemap.graph_marker.setPosition(show_points[item[0].index]);
+      googlemap.graph_marker.setVisible(true);
+    }
+  };
+  
   if(charts.temperature){
     charts.temperature.destroy();
   }
@@ -707,13 +733,12 @@ function showWeatherData(){
       },
       animation: false,
       maintainAspectRatio: false,
-      onHover: function(evt, item, legend){
-        if(item.length){
-          console.log(show_points[item[0].index]);
-        }
-      }
+      onHover: hover
     }
   });
+  document.getElementById("canvas_temperature").onmouseout = function(){
+    googlemap.graph_marker.setVisible(false);
+  }
   
   if(charts.wind){
     charts.wind.destroy();
@@ -753,9 +778,13 @@ function showWeatherData(){
         axis: "x"
       },
       animation: false,
-      maintainAspectRatio: false
+      maintainAspectRatio: false,
+      onHover: hover
     }
   });
+  document.getElementById("canvas_windspeed").onmouseout = function(){
+    googlemap.graph_marker.setVisible(false);
+  }
   
   if(charts.precipitation){
     charts.precipitation.destroy();
@@ -806,9 +835,13 @@ function showWeatherData(){
         axis: "x"
       },
       animation: false,
-      maintainAspectRatio: false
+      maintainAspectRatio: false,
+      onHover: hover
     }
   });
+  document.getElementById("canvas_precipitation").onmouseout = function(){
+    googlemap.graph_marker.setVisible(false);
+  }
 }
 
 window.addEventListener("DOMContentLoaded", function(){
