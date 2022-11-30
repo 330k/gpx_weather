@@ -709,28 +709,28 @@ window.addEventListener("DOMContentLoaded", function(){
   mapobjects.map.fitBounds([[31.194, 129.75],[45.12,144.15]]);
 
   mapobjects.base_maps = {
-    "Google Maps": L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+    "Google Maps": L.tileLayer("https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}", {
       attribution: "<a href='https://developers.google.com/maps/documentation' target='_blank'>Google Map</a>",
       zIndex: 1
     }),
-    "地理院地図": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-      attribution: '© 国土地理院',
+    "地理院地図": L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
+      attribution: "© 国土地理院",
       zIndex: 2
     }),
-    "地理院地図(淡色)": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-      attribution: '© 国土地理院',
+    "地理院地図(淡色)": L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", {
+      attribution: "© 国土地理院",
       zIndex: 3
     }),
-    "全国最新写真（シームレス）": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
-      attribution: '© 国土地理院',
+    "全国最新写真（シームレス）": L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", {
+      attribution: "© 国土地理院",
       zIndex: 4
     }),
-    "OSM(JP)": L.tileLayer('https://tile.openstreetmap.jp/{z}/{x}/{y}.png', {
+    "OSM(JP)": L.tileLayer("https://tile.openstreetmap.jp/{z}/{x}/{y}.png", {
       attribution: "<a href='https://osm.org/copyright' target='_blank'>OpenStreetMap</a> contributors",
       zIndex: 5
     }),
-    "OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://osm.org/copyright">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+    "OSM": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© <a href="https://osm.org/copyright">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>",
       zIndex: 6
     })
   };

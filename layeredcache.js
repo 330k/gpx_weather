@@ -25,6 +25,7 @@ function LayeredCache(cache_name, parser, l1_cache_size = 1000, cache_expiration
     });
   }else{
     console.error("Cache API Not Supported");
+    prepared = true;
   }
   
   /**
