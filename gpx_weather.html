@@ -611,6 +611,7 @@ function showWeatherData(){
         fillOpacity: 1,
         scale: 10
     },
+    zIndex: 100,
     map: googlemap.map
   }));
 
@@ -631,6 +632,7 @@ function showWeatherData(){
           rotation: data.winddirection_10m,
           scale: data.windspeed_10m * 0.5 // 長さで風速を表示
         },
+        zIndex: 200,
         title: (new Date(data.time)).toLocaleString() + ": " + data.windspeed_10m.toFixed(1) + "m/s"
       }));
       
@@ -688,21 +690,27 @@ function showWeatherData(){
     position: show_points[0],
     icon: {
       path: google.maps.SymbolPath.CIRCLE,
-      scale: 5,// 0.5 * options.strokeWeight + 4,
-      fillColor: "#ccc",//options.strokeColor,
+      scale: 6,// 0.5 * options.strokeWeight + 4,
+      fillColor: "#fff",//options.strokeColor,
       fillOpacity: 1,
-      strokeColor: "#000",//options.strokeColor,
+      strokeColor: "#f00",//options.strokeColor,
       strokeOpacity: 1,
-      strokeWeight: 1,
-      zIndex: 100
+      strokeWeight: 1
     },
+    zIndex: 150,
     map: googlemap.map
   });
   const hover = function(evt, item, legend){
     if(item && item.length){
       //console.log(show_points[item[0].index]);
-      googlemap.graph_marker.setPosition(show_points[item[0].index]);
-      googlemap.graph_marker.setVisible(true);
+      const prev_position = googlemap.graph_marker.getPosition();
+      
+      if((prev_position.lng() !== show_points[item[0].index].lng) || (prev_position.lat() !== show_points[item[0].index].lat)){
+        googlemap.graph_marker.setPosition(show_points[item[0].index]);
+        if(!googlemap.graph_marker.getVisible()){
+          googlemap.graph_marker.setVisible(true);
+        }
+      }
     }
   };
   
@@ -738,6 +746,13 @@ function showWeatherData(){
   });
   document.getElementById("canvas_temperature").onmouseout = function(){
     googlemap.graph_marker.setVisible(false);
+  }
+  document.getElementById("canvas_temperature").onmousemove = function(evt){
+    document.getElementById("canvas_precipitation").dispatchEvent(new MouseEvent("mousemove", {
+      screenX: evt.screenX,
+      clientX: evt.clientX,
+      clientY: evt.clientY
+    }));
   }
   
   if(charts.wind){
