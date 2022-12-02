@@ -682,6 +682,7 @@ function showWeatherData(){
     type: "time",
     time: {
       unit: "hour",
+      tooltipFormat: "MM/DD HH:mm",
       displayFormats: {
         hour: "HH:mm"//"MM/DD HH:mm"
       }
@@ -719,6 +720,7 @@ function showWeatherData(){
     content: ""
   });
   
+  // グラフの上をマウスが動いたとき、当該場所のマーカーを地図に表示
   const hover = function(evt, item, legend){
     if(item && item.length){
       const index = item[0].index;
