@@ -38,7 +38,8 @@ if ("serviceWorker" in navigator) {
 const googlemap = {
   map: null,
   lines: [],
-  dist_marker: null
+  dist_marker: null,
+  weather_markers: []
 };
 const gpx_data = [];
 const lcache = new LayeredCache("gpx-weather", function(response){
@@ -49,7 +50,7 @@ const lcache = new LayeredCache("gpx-weather", function(response){
   }
 }, 1000, 1 * 3600 * 1000);
 const weather_data = new WeatherData();
-const map_markers = [];
+const weather_points = [];
 const charts = {
   temperature: null,
   wind: null,
@@ -482,7 +483,7 @@ function WeatherData(){
    * @param {{lat:number,lng:number}} latlng
    * @return {[number]}
    */
-  this.listWeatherDataTime = function(latlng){
+  this.listWeatherDateTime = function(latlng){
     const latlng_code = getLatLngCode(latlng.lat, latlng.lng);
     
     return this._weather_data[latlng_code].map(e => e.time);
@@ -492,21 +493,40 @@ function WeatherData(){
 }
 
 /**
+ * フォームの選択状態から目標速度を得る
+ */
+function getTargetSpeed(){
+  if(document.getElementById("radio_speed").checked){
+    return document.getElementById("input_speed").value - 0;
+  }else{
+    const duration = document.getElementById("input_duration").value - 0;
+    if(gpx_data[0]){
+      const dist = gpx_data[0].coords.slice(-1)[0].dist;
+      const speed = 0.001 * dist / duration;
+      return 1e-8 * Math.floor(1e8 * speed);
+    }else{
+      return 0;
+    }
+  }
+}
+
+/**
  * ルート上の天候情報を取得する
  */
 function getRouteWeatherData(){
   const speed = getTargetSpeed();
-  const show_points = []; // 予報データを表示する緯度経度
   
   if(gpx_data.length === 0){
     return;
   }
   
+  weather_points.length = 0;
+  
   for(const gpx of gpx_data){
     let threshold = 0.0;
     for(const c of gpx.coords){
       if(c.dist >= threshold){
-        show_points.push(c);
+        weather_points.push(c);
         
         threshold += speed * 1000;
       }
@@ -514,18 +534,18 @@ function getRouteWeatherData(){
   }
   
   showLoader();
-  weather_data.fetchWeatherData(show_points).then(() => {
+  weather_data.fetchWeatherData(weather_points).then(() => {
     // スタート時刻として可能な時刻をselectに追加
     const duration = Math.floor(0.001 * gpx_data[0].coords[gpx_data[0].coords.length - 1].dist / speed);
     const prev_start_time =  document.getElementById("select_start_datetime").value - 0;
-    console.log(prev_start_time);
-    //console.log(weather_data.listWeatherDataTime(show_points[0])[0]);
-    //console.log(weather_data.listWeatherDataTime(show_points.slice(-1)[0]).slice(-1)[0]);
+    //console.log(prev_start_time);
+    //console.log(weather_data.listWeatherDateTime(weather_points[0])[0]);
+    //console.log(weather_data.listWeatherDateTime(weather_points.slice(-1)[0]).slice(-1)[0]);
     
     const buf = [];
     const now = Date.now();
     let selected_flag = false;
-    for(const t of weather_data.listWeatherDataTime(show_points[0])){
+    for(const t of weather_data.listWeatherDateTime(weather_points[0])){
       const time = new Date(t);
       let selected = "";
       
@@ -554,45 +574,18 @@ function getRouteWeatherData(){
 }
 
 /**
- * フォームの選択状態から目標速度を得る
- */
-function getTargetSpeed(){
-  if(document.getElementById("radio_speed").checked){
-    return document.getElementById("input_speed").value - 0;
-  }else{
-    const duration = document.getElementById("input_duration").value - 0;
-    if(gpx_data[0]){
-      const dist = gpx_data[0].coords.slice(-1)[0].dist;
-      const speed = 0.001 * dist / duration;
-      return 1e-8 * Math.floor(1e8 * speed);
-    }else{
-      return 0;
-    }
-  }
-}
-
-/**
  * 気象データを表示(地図 + グラフ)
  */
 function showWeatherData(){
   const speed = getTargetSpeed();
-  const show_points = []; // 予報データを表示する緯度経度
   
   if(gpx_data.length === 0){
     return;
   }
-  
-  for(const gpx of gpx_data){
-    let threshold = 0.0;
-    for(const c of gpx.coords){
-      if(c.dist >= threshold){
-        show_points.push(c);
-        
-        threshold += speed * 1000;
-      }
-    }
+  if(weather_points.length === 0){
+    return;
   }
-  //console.log(show_points);
+  
   const start_time =  document.getElementById("select_start_datetime").value - 0;
   
   const graph_data = {
@@ -603,10 +596,10 @@ function showWeatherData(){
     cloudcover: []
   };
   
-  map_markers.map(e => e.setMap(null));
-  map_markers.length = 0;
+  googlemap.weather_markers.map(e => e.setMap(null));
+  googlemap.weather_markers.length = 0;
   
-  map_markers.push(new google.maps.Marker({
+  googlemap.weather_markers.push(new google.maps.Marker({
     position: gpx_data[0].coords[0],
     icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -618,7 +611,7 @@ function showWeatherData(){
     },
     map: googlemap.map
   }));
-  map_markers.push(new google.maps.Marker({
+  googlemap.weather_markers.push(new google.maps.Marker({
     position: gpx_data[0].coords.slice(-1)[0],
     icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -632,13 +625,13 @@ function showWeatherData(){
     map: googlemap.map
   }));
 
-  for(const p of show_points){
+  for(const p of weather_points){
     const data = weather_data.getWeatherData(p, start_time + 3600 * (p.dist / speed));
     //console.log(p);
     //console.log(data);
     
     if(data){
-      map_markers.push(new google.maps.Marker({
+      googlemap.weather_markers.push(new google.maps.Marker({
         map: googlemap.map,
         position: p,
         icon: {
@@ -704,7 +697,7 @@ function showWeatherData(){
     googlemap.graph_position_marker.setMap(null);
   }
   googlemap.graph_position_marker = new google.maps.Marker({
-    position: show_points[0],
+    position: weather_points[0],
     icon: {
       path: google.maps.SymbolPath.CIRCLE,
       scale: 6,// 0.5 * options.strokeWeight + 4,
@@ -717,19 +710,22 @@ function showWeatherData(){
     zIndex: 150,
     map: googlemap.map
   });
+  googlemap.graph_position_marker.setVisible(false);
+  
   if(googlemap.graph_info_window){
     googlemap.graph_info_window.setMap(null);
   }
   googlemap.graph_info_window = new google.maps.InfoWindow({
     content: ""
   });
+  
   const hover = function(evt, item, legend){
     if(item && item.length){
       const index = item[0].index;
       const prev_position = googlemap.graph_position_marker.getPosition();
       
-      if((prev_position.lng() !== show_points[index].lng) || (prev_position.lat() !== show_points[index].lat)){
-        googlemap.graph_position_marker.setPosition(show_points[index]);
+      if((prev_position.lng() !== weather_points[index].lng) || (prev_position.lat() !== weather_points[index].lat)){
+        googlemap.graph_position_marker.setPosition(weather_points[index]);
         
         googlemap.graph_info_window.setContent([
           "<table>",
@@ -963,8 +959,8 @@ window.addEventListener("DOMContentLoaded", function(){
   document.getElementById("flexbox_reset").addEventListener("click", async function(evt){
     document.getElementById("file_gpx").value = "";
     gpx_data.length = 0;
-    map_markers.map(e => e.setMap(null));
-    map_markers.length = 0;
+    googlemap.weather_markers.map(e => e.setMap(null));
+    googlemap.weather_markers.length = 0;
     
     for(let i in charts){
       if(charts[i]){
