@@ -748,11 +748,25 @@ function showWeatherData(){
       if(!googlemap.graph_position_marker.getVisible()){
         googlemap.graph_position_marker.setVisible(true);
       }
+      
+      // ツールチップを同期させて表示
+      for(const chart of Object.values(charts)){
+        chart.tooltip.setActiveElements(chart.data.datasets.map((e, i) => ({
+          datasetIndex: i,
+          index: index
+        })));
+        chart.update();
+      }
     }
   };
   const mouseout = function(evt){
     googlemap.graph_position_marker.setVisible(false);
     googlemap.graph_info_window.close();
+    
+    for(const chart of Object.values(charts)){
+      chart.tooltip.setActiveElements([]);
+      chart.update();
+    }
   }
   
   if(charts.temperature){
