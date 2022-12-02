@@ -38,8 +38,7 @@ if ("serviceWorker" in navigator) {
 const googlemap = {
   map: null,
   lines: [],
-  dist_marker: null,
-  graph_marker: null
+  dist_marker: null
 };
 const gpx_data = [];
 const lcache = new LayeredCache("gpx-weather", function(response){
@@ -496,7 +495,7 @@ function WeatherData(){
  * ルート上の天候情報を取得する
  */
 function getRouteWeatherData(){
-  const speed = document.getElementById("input_speed").dataset.true_speed - 0;
+  const speed = getTargetSpeed();
   const show_points = []; // 予報データを表示する緯度経度
   
   if(gpx_data.length === 0){
@@ -519,7 +518,7 @@ function getRouteWeatherData(){
     // スタート時刻として可能な時刻をselectに追加
     const duration = Math.floor(0.001 * gpx_data[0].coords[gpx_data[0].coords.length - 1].dist / speed);
     const prev_start_time =  document.getElementById("select_start_datetime").value - 0;
-    
+    console.log(prev_start_time);
     //console.log(weather_data.listWeatherDataTime(show_points[0])[0]);
     //console.log(weather_data.listWeatherDataTime(show_points.slice(-1)[0]).slice(-1)[0]);
     
@@ -555,10 +554,28 @@ function getRouteWeatherData(){
 }
 
 /**
+ * フォームの選択状態から目標速度を得る
+ */
+function getTargetSpeed(){
+  if(document.getElementById("radio_speed").checked){
+    return document.getElementById("input_speed").value - 0;
+  }else{
+    const duration = document.getElementById("input_duration").value - 0;
+    if(gpx_data[0]){
+      const dist = gpx_data[0].coords.slice(-1)[0].dist;
+      const speed = 0.001 * dist / duration;
+      return 1e-8 * Math.floor(1e8 * speed);
+    }else{
+      return 0;
+    }
+  }
+}
+
+/**
  * 気象データを表示(地図 + グラフ)
  */
 function showWeatherData(){
-  const speed = document.getElementById("input_speed").dataset.true_speed - 0;
+  const speed = getTargetSpeed();
   const show_points = []; // 予報データを表示する緯度経度
   
   if(gpx_data.length === 0){
@@ -683,10 +700,10 @@ function showWeatherData(){
     }
   };
   
-  if(googlemap.graph_marker){
-    googlemap.graph_marker.setMap(null);
+  if(googlemap.graph_position_marker){
+    googlemap.graph_position_marker.setMap(null);
   }
-  googlemap.graph_marker = new google.maps.Marker({
+  googlemap.graph_position_marker = new google.maps.Marker({
     position: show_points[0],
     icon: {
       path: google.maps.SymbolPath.CIRCLE,
@@ -700,19 +717,45 @@ function showWeatherData(){
     zIndex: 150,
     map: googlemap.map
   });
+  if(googlemap.graph_info_window){
+    googlemap.graph_info_window.setMap(null);
+  }
+  googlemap.graph_info_window = new google.maps.InfoWindow({
+    content: ""
+  });
   const hover = function(evt, item, legend){
     if(item && item.length){
-      //console.log(show_points[item[0].index]);
-      const prev_position = googlemap.graph_marker.getPosition();
+      const index = item[0].index;
+      const prev_position = googlemap.graph_position_marker.getPosition();
       
-      if((prev_position.lng() !== show_points[item[0].index].lng) || (prev_position.lat() !== show_points[item[0].index].lat)){
-        googlemap.graph_marker.setPosition(show_points[item[0].index]);
+      if((prev_position.lng() !== show_points[index].lng) || (prev_position.lat() !== show_points[index].lat)){
+        googlemap.graph_position_marker.setPosition(show_points[index]);
+        
+        googlemap.graph_info_window.setContent([
+          "<table>",
+          "<tr><td>時刻</td><td>" + (new Date(graph_data.temperature[index].x)).toLocaleString(),
+          "<tr><td>気温</td><td>" + graph_data.temperature[index].y + " ℃" + "</td></tr>",
+          "<tr><td>風速</td><td>" + graph_data.windspeed[index].y + " m/s" + "</td></tr>",
+          "<tr><td>瞬間風速</td><td>" + graph_data.windgusts[index].y + " m/s" + "</td></tr>",
+          "<tr><td>降水量</td><td>" + graph_data.precipitation[index].y + " mm" + "</td></tr>",
+          "<tr><td>雲量</td><td>" + graph_data.cloudcover[index].y + " %" + "</td></tr>",
+          "</table>",
+        ].join(""));
+        /*googlemap.graph_info_window.open({
+          anchor: googlemap.graph_position_marker,
+          map: googlemap.map,
+          shouldFocus: false
+        });*/
       }
-      if(!googlemap.graph_marker.getVisible()){
-        googlemap.graph_marker.setVisible(true);
+      if(!googlemap.graph_position_marker.getVisible()){
+        googlemap.graph_position_marker.setVisible(true);
       }
     }
   };
+  const mouseout = function(evt){
+    googlemap.graph_position_marker.setVisible(false);
+    googlemap.graph_info_window.close();
+  }
   
   if(charts.temperature){
     charts.temperature.destroy();
@@ -744,17 +787,7 @@ function showWeatherData(){
       onHover: hover
     }
   });
-  document.getElementById("canvas_temperature").onmouseout = function(){
-    googlemap.graph_marker.setVisible(false);
-  }
-  document.getElementById("canvas_temperature").onmousemove = function(evt){
-    //どうにかしてグラフの凡例表示を同期させたいが・・・
-    document.getElementById("canvas_precipitation").dispatchEvent(new MouseEvent("mousemove", {
-      screenX: evt.screenX,
-      clientX: evt.clientX,
-      clientY: evt.clientY
-    }));
-  }
+  document.getElementById("canvas_temperature").onmouseout = mouseout;
   
   if(charts.wind){
     charts.wind.destroy();
@@ -798,9 +831,7 @@ function showWeatherData(){
       onHover: hover
     }
   });
-  document.getElementById("canvas_windspeed").onmouseout = function(){
-    googlemap.graph_marker.setVisible(false);
-  }
+  document.getElementById("canvas_windspeed").onmouseout = mouseout;
   
   if(charts.precipitation){
     charts.precipitation.destroy();
@@ -855,9 +886,7 @@ function showWeatherData(){
       onHover: hover
     }
   });
-  document.getElementById("canvas_precipitation").onmouseout = function(){
-    googlemap.graph_marker.setVisible(false);
-  }
+  document.getElementById("canvas_precipitation").onmouseout = mouseout;
 }
 
 window.addEventListener("DOMContentLoaded", function(){
@@ -891,41 +920,42 @@ window.addEventListener("DOMContentLoaded", function(){
   // スタート日時変更
   document.getElementById("select_start_datetime").addEventListener("change", showWeatherData);
   
+  const change_radio_select = function(evt){
+    if(document.getElementById("radio_speed").checked){
+      document.getElementById("radio_speed").checked = true;
+      document.getElementById("input_speed").disabled = false;
+      document.getElementById("input_duration").disabled = true;
+      document.getElementById("input_speed").dispatchEvent(new Event("change"));
+    }else{
+      document.getElementById("radio_duration").checked = true;
+      document.getElementById("input_speed").disabled = true;
+      document.getElementById("input_duration").disabled = false;
+      document.getElementById("input_duration").dispatchEvent(new Event("change"));
+    }
+  };
+  
   // 速度変更
-  document.getElementById("radio_speed").addEventListener("change", function(evt){
-    document.getElementById("radio_speed").checked = true;
-    document.getElementById("input_speed").disabled = false;
-    document.getElementById("input_speed").dispatchEvent(new Event("change"));
-  });
-  document.getElementById("input_speed").dataset.true_speed = document.getElementById("input_speed").value;
+  document.getElementById("radio_speed").addEventListener("change", change_radio_select);
   document.getElementById("input_speed").addEventListener("change", function(evt){
     const speed = document.getElementById("input_speed").value - 0;
-    document.getElementById("input_speed").dataset.true_speed = speed;
     if(gpx_data[0]){
       const dist = gpx_data[0].coords.slice(-1)[0].dist;
       const duration = 0.001 * dist / speed;
       document.getElementById("input_duration").value = (0.01 * Math.floor(100 * duration)).toFixed(2);
     }
-    document.getElementById("input_duration").disabled = true;
     
     getRouteWeatherData();
   });
   
   // 目標時間変更
-  document.getElementById("radio_duration").addEventListener("change", function(evt){
-    document.getElementById("radio_duration").checked = true;
-    document.getElementById("input_duration").disabled = false;
-    document.getElementById("input_duration").dispatchEvent(new Event("change"));
-  });
+  document.getElementById("radio_duration").addEventListener("change", change_radio_select);
   document.getElementById("input_duration").addEventListener("change", function(evt){
     const duration = document.getElementById("input_duration").value - 0;
     if(gpx_data[0]){
       const dist = gpx_data[0].coords.slice(-1)[0].dist;
       const speed = 0.001 * dist / duration;
-      document.getElementById("input_speed").dataset.true_speed = 1e-8 * Math.floor(1e8 * speed);
       document.getElementById("input_speed").value = (0.01 * Math.floor(100 * speed)).toFixed(2);
     }
-    document.getElementById("input_speed").disabled = true;
     
     getRouteWeatherData();
   });
@@ -961,6 +991,21 @@ window.addEventListener("DOMContentLoaded", function(){
   if(window !== window.parent){
     document.getElementById("flexbox_link").style.display = "none"
   }
+});
+
+// 戻るボタンを押されたときにフォームの値が残っているとき
+window.addEventListener("pageshow", function(evt){
+  console.log("pageshow");
+  console.log(evt);
+  console.log(document.getElementById("select_start_datetime").value);
+  console.log(document.getElementById("radio_speed").checked);
+  console.log(document.getElementById("radio_duration").checked);
+  console.log(document.getElementById("input_speed").value);
+  console.log(document.getElementById("input_duration").value);
+  
+  document.getElementById("radio_speed").dispatchEvent(new Event("change"));
+  //document.getElementById("input_speed").dispatchEvent(new Event("change"));
+  document.getElementById("file_gpx").dispatchEvent(new Event("change"));
 });
 
 /**
@@ -1384,7 +1429,7 @@ input[type=file] {
   <div id="flexbox_start_datetime"><label accesskey="s">スタート日時<br><select id="select_start_datetime"></select></label></div>
   <div id="flexbox_target_designation">
    <div><label><input id="radio_speed" type="radio" name="designate_method" value="speed" checked>速度で指定<br><input id="input_speed" value="15" type="number" min="10" max="40"> km/h</label></div>
-   <div><label><input id="radio_duration" type="radio" name="designate_method" value="duration">時間で指定<br><input id="input_duration" value="24" type="number" min="1" max="300" disabled> h</label></div>
+   <div><label><input id="radio_duration" type="radio" name="designate_method" value="duration">時間で指定<br><input id="input_duration" value="24" type="number" min="1" max="300"> h</label></div>
   </div>
   <div id="flexbox_reset">Clear</div>
   <div id="flexbox_fullscreen"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 513.32 513.32' xml:space='preserve'%3E%3Cpath d='M177.523 305.853 42.777 440.6v-98.387H0V513.32h171.107v-42.777H74.859l134.746-134.746z'/%3E%3Cpath d='M470.543 440.6 72.72 42.777h98.387V0H0v171.107h42.777V72.72L440.6 470.543h-98.387v42.777H513.32V342.213h-42.777z'/%3E%3Cpath d='M342.213 0v42.777h100.526L307.992 177.523l29.943 29.944L470.543 74.859v96.248h42.777V0z'/%3E%3C/svg%3E" width="24" height="24" title="フルスクリーン"></div>
