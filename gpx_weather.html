@@ -31,6 +31,24 @@ if ("serviceWorker" in navigator) {
   });
 }
 </script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+  window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+  ga("create", "UA-5655726-3", "auto");
+  
+  ga("send", "pageview");
+}
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L5FSJ397HF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+
+  gtag("config", "G-L5FSJ397HF");
+</script>
 <script>
 "use strict";
 /* Copyright 2022 Kei Misawa All Rights Reserved */
@@ -1024,7 +1042,7 @@ window.addEventListener("pageshow", function(evt){
  * Google Maps JavaScript API Initialize Callback
  */
 function initMap(){
-  googlemap.map = new google.maps.Map(document.getElementById('map_canvas'), {
+  googlemap.map = new google.maps.Map(document.getElementById("map_canvas"), {
     zoom: 6,
     mapTypeId: google.maps.MapTypeId.ROADMAP,
     center: new google.maps.LatLng(35.681382, 139.766084),
