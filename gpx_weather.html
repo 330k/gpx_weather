@@ -399,13 +399,6 @@ function showRoutes(){
  */
 function WeatherData(){
   this._weather_data = {};
-  // timeはGMTのgetTimeで管理する
-  
-  const now = new Date();
-  const start_date = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
-  const end_date = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 8);
-  const start_date_str = start_date.getFullYear() + "-" + ("0" + (start_date.getMonth() + 1)).slice(-2) + "-" + ("0" + start_date.getDate()).slice(-2);
-  const end_date_str = end_date.getFullYear() + "-" + ("0" + (end_date.getMonth() + 1)).slice(-2) + "-" + ("0" + end_date.getDate()).slice(-2);
   
   // 緯度方向は1/20度、経度方向は1/16度
   const getLatLngCode = (lat, lng) => Math.round(lat * 20) + "," + Math.round(lng * 16);
@@ -416,6 +409,14 @@ function WeatherData(){
    * @return {Promise} すべて取得し終えた時に解決されるPromise
    */
   this.fetchWeatherData = function(coords){
+    // timeはGMTのgetTimeで管理する
+    
+    const now = new Date();
+    const start_date = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1);
+    const end_date = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 8);
+    const start_date_str = start_date.getFullYear() + "-" + ("0" + (start_date.getMonth() + 1)).slice(-2) + "-" + ("0" + start_date.getDate()).slice(-2);
+    const end_date_str = end_date.getFullYear() + "-" + ("0" + (end_date.getMonth() + 1)).slice(-2) + "-" + ("0" + end_date.getDate()).slice(-2);
+    
     const latlngs = {};  // APIに問い合わせる緯度経度
     
     for(const c of coords){
